@@ -1,0 +1,26 @@
+@"
+# Ignore all environment files
+.env
+.env.*
+!.env.example
+
+# Ignore databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore media folders
+/uploads/
+/processed/
+/backend/uploads/
+/backend/processed/
+
+# Ignore Python environments and caches
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Ignore YOLO model weights
+*.pt
+*.pth
+"@ | Add-Content .gitignore
