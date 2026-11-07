@@ -24,3 +24,4 @@ __pycache__/
 *.pt
 *.pth
 "@ | Add-Content .gitignore
+!yolov8n.pt

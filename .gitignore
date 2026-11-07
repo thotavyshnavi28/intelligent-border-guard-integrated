@@ -36,6 +36,7 @@ backend/.venv/
 backend/.ultralytics/
 backend/*.db
 *.pt
+!backend/yolov8n.pt
 
 
 # Project security and local data
@@ -54,3 +55,4 @@ __pycache__/
 .pytest_cache/
 *.pt
 *.pth
+!backend/yolov8n.pt
