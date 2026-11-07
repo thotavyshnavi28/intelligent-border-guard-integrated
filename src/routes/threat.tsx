@@ -27,8 +27,9 @@ import {
 } from "lucide-react";
 import { Panel, Shell, StatusDot } from "@/components/sentinel/Shell";
 import { Button } from "@/components/ui/button";
-import { recordIncident } from "@/lib/incidents";
+import { recordIncident, syncIncidentsFromBackend } from "@/lib/incidents";
 import { useFusionSimulation } from "@/hooks/useFusionSimulation";
+import { assessThreat, getWebSocketUrl } from "@/services/api";
 import { SENSOR_LABEL, SENSOR_SHORT, type FusionTrack, type SensorKind } from "@/lib/fusion";
 import { TYPE_COLOR, TYPE_LABEL, compass, geoOf, type TargetType } from "@/lib/radar";
 import {
@@ -374,6 +375,46 @@ function ThreatPage() {
   const timestamp = selectedTrack?.timestamp ?? frame.environment.timestamp;
 
   useEffect(() => {
+    void syncIncidentsFromBackend().then((items) => {
+      if (items && items.length) setIncidents(items);
+    });
+  }, []);
+
+  // Assess target on backend when selected
+  useEffect(() => {
+    if (!selectedTrack) return;
+    const conf = selectedTrack.confidence <= 1 ? selectedTrack.confidence : selectedTrack.confidence / 100;
+    assessThreat({
+      target_id: selectedTrack.id,
+      target_type: selectedTrack.type,
+      distance: selectedTrack.distance,
+      speed: selectedTrack.speed,
+      heading: selectedTrack.heading,
+      x: selectedTrack.x,
+      y: selectedTrack.y,
+      confidence: conf,
+      sensors: selectedTrack.sensors,
+      conflict: selectedTrack.conflict || null,
+    }).catch((err) => {
+      console.warn("Backend threat assessment call:", err);
+    });
+  }, [selectedTrack?.id]);
+
+  // Connect to /ws/threats
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    try {
+      const url = getWebSocketUrl("threats");
+      ws = new WebSocket(url);
+    } catch {
+      // ignore
+    }
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 4000);
     return () => window.clearTimeout(timer);
@@ -429,8 +470,24 @@ function ThreatPage() {
     );
   }
 
-  function sendToIncidents() {
+  async function sendToIncidents() {
     if (!selectedTrack || !selected) return;
+    try {
+      const conf = selectedTrack.confidence <= 1 ? selectedTrack.confidence : selectedTrack.confidence / 100;
+      await assessThreat({
+        target_id: selectedTrack.id,
+        target_type: selectedTrack.type,
+        distance: selectedTrack.distance,
+        speed: selectedTrack.speed,
+        heading: selectedTrack.heading,
+        x: selectedTrack.x,
+        y: selectedTrack.y,
+        confidence: conf,
+        sensors: selectedTrack.sensors,
+      });
+    } catch {
+      // Proceed even if backend assessment already exists or encounters error
+    }
     const record = recordIncident(buildIncident(selectedTrack, selected));
     setIncidents((previous) => [record, ...previous.filter((item) => item.id !== record.id)].slice(0, 8));
     setNotice(`${record.id} · ${record.targetId} recorded in incident history`);

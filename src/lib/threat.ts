@@ -166,18 +166,18 @@ export interface IncidentRecord {
   sensors: SensorKind[];
   factors: string[];
   recommendation: string;
-  distance?: number;
-  speed?: number;
-  direction?: string;
-  fusionConfidence?: number;
-  latitude?: string;
-  longitude?: string;
-  mapX?: number;
-  mapY?: number;
-  breakdown?: ThreatBreakdown;
-  status?: IncidentStatus;
-  reviewNotes?: string;
-  timeline?: Array<{ timestamp: number; event: string }>;
+  distance?: number | undefined;
+  speed?: number | undefined;
+  direction?: string | undefined;
+  fusionConfidence?: number | undefined;
+  latitude?: string | undefined;
+  longitude?: string | undefined;
+  mapX?: number | undefined;
+  mapY?: number | undefined;
+  breakdown?: ThreatBreakdown | undefined;
+  status?: IncidentStatus | undefined;
+  reviewNotes?: string | undefined;
+  timeline?: Array<{ timestamp: number; event: string }> | undefined;
 }
 
 export type IncidentStatus = "NEW" | "UNDER REVIEW" | "CONFIRMED" | "RESOLVED";

@@ -76,8 +76,17 @@ const SENSORS: Array<{ name: string; state: string; tone: "online" | "idle"; act
 ];
 
 function RadarPage() {
-  const { targets, settings, setSettings, running, setRunning, reset, addTarget } =
-    useRadarSimulation();
+  const {
+    targets,
+    settings,
+    setSettings,
+    running,
+    handleStart,
+    handlePause,
+    reset,
+    addTarget,
+    connected,
+  } = useRadarSimulation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     type: "human" as TargetType,
@@ -118,6 +127,12 @@ function RadarPage() {
             Tracking Engine:{" "}
             <span className={settings.trackingEnabled ? "text-online" : "text-warning"}>
               {settings.trackingEnabled ? "Active" : "Standby"}
+            </span>
+          </span>
+          <span>
+            Feed:{" "}
+            <span className={connected ? "text-online" : "text-primary"}>
+              {connected ? "Live Backend (WS)" : "Local Simulation"}
             </span>
           </span>
           <span>
@@ -427,10 +442,10 @@ function RadarPage() {
             <Panel title="Radar Simulation" icon={SlidersHorizontal}>
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-2">
-                  <Button size="sm" variant={running ? "secondary" : "default"} onClick={() => setRunning(true)}>
+                  <Button size="sm" variant={running ? "secondary" : "default"} onClick={handleStart}>
                     <Play className="size-3.5" /> Start
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setRunning(false)}>
+                  <Button size="sm" variant="secondary" onClick={handlePause}>
                     <Pause className="size-3.5" /> Pause
                   </Button>
                   <Button size="sm" variant="secondary" onClick={reset}>
@@ -538,7 +553,10 @@ function RadarPage() {
                 <Button
                   size="sm"
                   className="w-full"
-                  onClick={() => setSelectedId(addTarget(draft))}
+                  onClick={async () => {
+                    const id = await addTarget(draft);
+                    if (id) setSelectedId(id);
+                  }}
                 >
                   <Plus className="size-3.5" /> Deploy Demo Target
                 </Button>

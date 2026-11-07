@@ -1,7 +1,7 @@
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { setAccessToken } from "../services/api";
+import { getApiBaseUrl, setAccessToken } from "../services/api";
 
 export const Route = createFileRoute("/login")({
     component: Login,
@@ -22,7 +22,7 @@ function Login() {
 
         try {
             const response = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/login`,
+                `${getApiBaseUrl()}/api/v1/auth/login`,
                 {
                     method: "POST",
                     headers: {

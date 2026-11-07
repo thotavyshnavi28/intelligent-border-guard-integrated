@@ -9,7 +9,7 @@ import {
 import { Panel, Shell, StatusDot } from "@/components/sentinel/Shell";
 import { Button } from "@/components/ui/button";
 import { useFusionSimulation } from "@/hooks/useFusionSimulation";
-import { readIncidentRecords, subscribeIncidentRecords } from "@/lib/incidents";
+import { readIncidentRecords, subscribeIncidentRecords, syncIncidentsFromBackend } from "@/lib/incidents";
 import { SENSOR_LABEL, SENSOR_SHORT, type FusionTrack, type SensorKind } from "@/lib/fusion";
 import { TYPE_COLOR, TYPE_LABEL, compass, geoOf, type TargetType } from "@/lib/radar";
 import { assessTrack, type ThreatAssessment, type ThreatLevel } from "@/lib/threat";
@@ -114,15 +114,24 @@ function CommandDashboard() {
   const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDashboardStats()
-      .then((data) => {
-        setStats(data);
-        setStatsError(null);
-      })
-      .catch((error) => {
-        setStatsError(error.message);
-      });
-  }, []); const navigate = useNavigate();
+    void syncIncidentsFromBackend().then((items) => {
+      if (items && items.length) setIncidents(items);
+    });
+    const fetchStats = () => {
+      getDashboardStats()
+        .then((data) => {
+          setStats(data);
+          setStatsError(null);
+        })
+        .catch((error) => {
+          setStatsError(error.message);
+        });
+    };
+    fetchStats();
+    const interval = window.setInterval(fetchStats, 5000);
+    return () => window.clearInterval(interval);
+  }, []);
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>("T-101");
   const [incidents, setIncidents] = useState(() => readIncidentRecords());
   const [report, setReport] = useState<string | null>(null);
@@ -202,10 +211,30 @@ function CommandDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
-        <Summary label="Total Targets" value={frame.tracks.length.toString().padStart(2, "0")} tone="primary" icon={Crosshair} />
-        <Summary label="Threats Detected" value={highTargets.toString().padStart(2, "0")} tone="critical" icon={ShieldAlert} />
-        <Summary label="Active Alerts" value={latestEvents.filter(({ assessment }) => (assessment?.level === "HIGH" || assessment?.level === "CRITICAL" || assessment?.level === "MEDIUM") && alertsOn).length.toString().padStart(2, "0")} tone="warning" icon={Bell} />
-        <Summary label="Sensors Online" value={`${SENSORS.length.toString().padStart(2, "0")}/06`} tone="online" icon={RadioTower} />
+        <Summary
+          label="Total Targets"
+          value={String(stats ? (stats.radar_targets || frame.tracks.length) : frame.tracks.length).padStart(2, "0")}
+          tone="primary"
+          icon={Crosshair}
+        />
+        <Summary
+          label="Threats Detected"
+          value={String(stats ? ((stats.threat_levels.HIGH + stats.threat_levels.CRITICAL) || highTargets) : highTargets).padStart(2, "0")}
+          tone="critical"
+          icon={ShieldAlert}
+        />
+        <Summary
+          label="Active Incidents"
+          value={String(stats ? stats.open_incidents : incidents.filter((i) => (i.status ?? "NEW") !== "RESOLVED").length).padStart(2, "0")}
+          tone="warning"
+          icon={Bell}
+        />
+        <Summary
+          label="CCTV AI Records"
+          value={String(stats ? stats.cctv_uploads : 0).padStart(2, "0")}
+          tone="online"
+          icon={Camera}
+        />
       </div>
 
       <div className="grid gap-3 2xl:grid-cols-[minmax(0,1fr)_310px]">

@@ -28,7 +28,7 @@ import { Panel, Shell } from "@/components/sentinel/Shell";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SENSOR_LABEL, SENSOR_SHORT, type SensorKind } from "@/lib/fusion";
-import { readIncidentRecords, subscribeIncidentRecords, updateIncident } from "@/lib/incidents";
+import { readIncidentRecords, subscribeIncidentRecords, updateIncident, syncIncidentsFromBackend } from "@/lib/incidents";
 import { TYPE_LABEL, type TargetType } from "@/lib/radar";
 import type { IncidentRecord, IncidentStatus, ThreatLevel } from "@/lib/threat";
 
@@ -116,6 +116,9 @@ function IncidentHistory() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
+    void syncIncidentsFromBackend().then((items) => {
+      if (items && items.length) setRecords(items);
+    });
     const refresh = () => setRecords(readIncidentRecords());
     refresh();
     return subscribeIncidentRecords(refresh);

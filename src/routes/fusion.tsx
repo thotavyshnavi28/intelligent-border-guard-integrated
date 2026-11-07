@@ -32,6 +32,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFusionSimulation } from "@/hooks/useFusionSimulation";
+import { runFusion, getFusedTargets } from "@/services/api";
 import {
   SENSOR_LABEL,
   SENSOR_SHORT,
@@ -244,6 +245,19 @@ function FusionPage() {
   const [selectedId, setSelectedId] = useState<string | null>("T-101");
   const [sentTarget, setSentTarget] = useState<string | null>(null);
   const [rawTab, setRawTab] = useState<SensorKind>("cctv");
+  const [backendEvidenceCount, setBackendEvidenceCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    runFusion()
+      .then((res) => {
+        if (res && res.cctv_evidence) {
+          setBackendEvidenceCount(res.cctv_evidence.length);
+        }
+      })
+      .catch((err) => {
+        console.warn("Backend fusion run:", err);
+      });
+  }, []);
 
   const selected = useMemo(
     () => frame.tracks.find((track) => track.id === selectedId) ?? frame.tracks[0] ?? null,
@@ -429,7 +443,7 @@ function FusionPage() {
 
           <Panel title="Simulation Controls" icon={Gauge} className="h-fit">
             <div className="grid grid-cols-3 gap-2">
-              <Button size="sm" onClick={() => setRunning(true)} variant={running ? "default" : "secondary"}><Play className="size-3.5" />Start</Button>
+              <Button size="sm" onClick={() => { setRunning(true); runFusion().catch(() => {}); }} variant={running ? "default" : "secondary"}><Play className="size-3.5" />Start</Button>
               <Button size="sm" variant="secondary" onClick={() => setRunning(false)}><Pause className="size-3.5" />Pause</Button>
               <Button size="sm" variant="secondary" onClick={reset}><RotateCcw className="size-3.5" />Reset</Button>
             </div>
